@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">TICKER — Valuation | Análise Fundamental</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0d0d0d;
+  --ink-2: #2a2a2a;
+  --ink-3: #555;
+  --ink-4: #888;
+  --paper: #f9f7f3;
+  --paper-2: #f2efe9;
+  --paper-3: #e8e4dc;
+  --rule: #d4cfc6;
+  --accent: #1a3a5c;
+  --accent-2: #c8401a;
+  --accent-3: #2d6a4f;
+  --gold: #b8860b;
+  --bear: #c8401a;
+  --base: #1a3a5c;
+  --bull: #2d6a4f;
+  --serif: 'DM Serif Display', Georgia, serif;
+  --sans: 'Instrument Sans', system-ui, sans-serif;
+  --mono: 'DM Mono', 'Courier New', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+/* ── EDITOR PANEL ─────────────────────────────────────────── */
+#editor-panel {
+  position: fixed; top: 0; right: 0; height: 100vh; width: 340px;
+  background: #0d1117; color: #e6edf3; z-index: 1000;
+  overflow-y: auto; padding: 24px 20px;
+  border-left: 1px solid #30363d;
+  transform: translateX(0); transition: transform .3s ease;
+  font-family: var(--sans);
+}
+#editor-panel.collapsed { transform: translateX(340px); }
+#toggle-editor {
+  position: fixed; top: 50%; right: 0; transform: translateY(-50%);
+  z-index: 1001; background: #1a3a5c; color: #fff;
+  border: none; cursor: pointer; padding: 12px 8px;
+  border-radius: 6px 0 0 6px; font-size: 18px;
+  writing-mode: vertical-rl; letter-spacing: 2px;
+  font-family: var(--mono); font-size: 11px;
+  transition: right .3s ease;
+}
+#toggle-editor.shifted { right: 340px; }
+
+.ep-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #8b949e; margin-bottom: 20px; font-family: var(--mono); }
+.ep-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #21262d; }
+.ep-section:last-child { border-bottom: none; }
+.ep-section-title { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #58a6ff; margin-bottom: 12px; font-family: var(--mono); }
+.ep-row { margin-bottom: 10px; }
+.ep-row label { display: block; font-size: 11px; color: #8b949e; margin-bottom: 4px; font-family: var(--mono); }
+.ep-row input, .ep-row select, .ep-row textarea {
+  width: 100%; background: #161b22; border: 1px solid #30363d; border-radius: 4px;
+  color: #e6edf3; padding: 6px 10px; font-family: var(--mono); font-size: 12px;
+  outline: none; transition: border-color .2s;
+}
+.ep-row input:focus, .ep-row select:focus { border-color: #58a6ff; }
+.ep-row textarea { resize: vertical; min-height: 60px; }
+.ep-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ep-btn {
+  width: 100%; padding: 9px; background: #1a3a5c; color: #fff;
+  border: none; border-radius: 4px; cursor: pointer; font-family: var(--mono);
+  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  margin-top: 8px; transition: background .2s;
+}
+.ep-btn:hover { background: #2d6a4f; }
+.ep-btn.danger { background: #c8401a; }
+.ep-note { font-size: 10px; color: #6e7681; margin-top: 4px; font-family: var(--mono); line-height: 1.5; }
+
+/* ── MAIN CONTENT ─────────────────────────────────────────── */
+#main { margin-right: 340px; transition: margin-right .3s ease; }
+#main.expanded { margin-right: 0; }
+
+/* ── HEADER ────────────────────────────────────────────────── */
+.site-header {
+  padding: 20px 64px 16px;
+  border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--paper);
+  position: sticky; top: 0; z-index: 50;
+}
+.site-header-left { display: flex; align-items: center; gap: 20px; }
+.logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--accent); letter-spacing: 1px; }
+.header-meta { font-size: 12px; color: var(--ink-4); font-family: var(--mono); }
+.header-pill {
+  display: inline-block; font-family: var(--mono); font-size: 10px;
+  letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 10px;
+  border: 1px solid var(--rule); border-radius: 2px; color: var(--ink-3);
+}
+
+/* ── HERO ───────────────────────────────────────────────────── */
+.hero {
+  padding: 80px 64px 64px;
+  border-bottom: 1px solid var(--rule);
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; top: -60px; right: -60px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(26,58,92,.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-label { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-4); margin-bottom: 16px; }
+.hero-title {
+  font-family: var(--serif); font-size: clamp(36px, 5vw, 56px);
+  line-height: 1.1; color: var(--ink); margin-bottom: 20px;
+  max-width: 700px;
+}
+.hero-title span { color: var(--accent); }
+.hero-meta { font-size: 13px; color: var(--ink-4); font-family: var(--mono); margin-bottom: 32px; }
+.hero-desc { font-size: 15px; color: var(--ink-2); max-width: 640px; line-height: 1.75; }
+.hero-scroll { margin-top: 48px; font-family: var(--mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-4); display: flex; align-items: center; gap: 8px; }
+.hero-scroll::after { content: ''; display: block; width: 40px; height: 1px; background: var(--rule); }
+
+/* ── SECTIONS ──────────────────────────────────────────────── */
+.section {
+  padding: 72px 64px;
+  border-bottom: 1px solid var(--rule);
+}
+.section-label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--ink-4); margin-bottom: 8px;
+}
+.section-num {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+  color: var(--accent-2); margin-bottom: 8px;
+}
+.section-title {
+  font-family: var(--serif); font-size: clamp(26px, 3vw, 36px);
+  color: var(--ink); margin-bottom: 12px; line-height: 1.2;
+}
+.section-subtitle { font-size: 14px; color: var(--ink-3); max-width: 600px; line-height: 1.7; margin-bottom: 48px; }
+
+/* ── SNAPSHOT CARDS ─────────────────────────────────────────── */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-bottom: 0; }
+.card {
+  background: var(--paper); padding: 24px 20px;
+  transition: background .15s;
+}
+.card:hover { background: var(--paper-2); }
+.card-label { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-4); margin-bottom: 8px; }
+.card-value { font-family: var(--serif); font-size: 26px; color: var(--ink); line-height: 1.1; margin-bottom: 6px; }
+.card-sub { font-size: 12px; color: var(--ink-4); font-family: var(--mono); }
+.card-badge { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 2px; margin-top: 6px; }
+.badge-pos { background: #d4edda; color: #1a4d2e; }
+.badge-neg { background: #fde8e4; color: #6b1a0e; }
+.badge-neu { background: #e8e4dc; color: #555; }
+
+/* ── TABLES ─────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; margin-top: 32px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead tr { border-bottom: 2px solid var(--ink); }
+thead th { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-3); padding: 10px 16px 10px 0; text-align: left; font-weight: 500; }
+tbody tr { border-bottom: 1px solid var(--rule); transition: background .1s; }
+tbody tr:hover { background: var(--paper-2); }
+tbody td { padding: 12px 16px 12px 0; color: var(--ink-2); vertical-align: middle; }
+tbody td:first-child { font-weight: 500; color: var(--ink); }
+.leitura-desc { color: var(--ink-3); font-size: 11px; }
+.leitura-pos { color: var(--accent-3); font-family: var(--mono); font-size: 11px; font-weight: 500; }
+.leitura-neu { color: var(--gold); font-family: var(--mono); font-size: 11px; font-weight: 500; }
+.leitura-neg { color: var(--bear); font-family: var(--mono); font-size: 11px; font-weight: 500; }
+.peer-highlight { background: rgba(26,58,92,.04); }
+
+/* ── DCF ─────────────────────────────────────────────────────── */
+.dcf-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; margin-bottom: 48px; }
+.dcf-input-block { }
+.dcf-input-label { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-4); margin-bottom: 6px; }
+.dcf-input-val { font-family: var(--serif); font-size: 20px; color: var(--ink); }
+.scenarios { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-bottom: 48px; }
+.scenario { background: var(--paper); padding: 32px 24px; }
+.scenario-label { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+.scenario-price { font-family: var(--serif); font-size: 40px; line-height: 1; margin-bottom: 10px; }
+.scenario-delta { font-family: var(--mono); font-size: 12px; margin-bottom: 12px; }
+.scenario-params { font-family: var(--mono); font-size: 10px; color: var(--ink-4); line-height: 1.7; }
+.scenario.bear .scenario-label { color: var(--bear); }
+.scenario.bear .scenario-price { color: var(--bear); }
+.scenario.base .scenario-label { color: var(--base); }
+.scenario.base .scenario-price { color: var(--base); }
+.scenario.base { border-left: 3px solid var(--base); }
+.scenario.bull .scenario-label { color: var(--bull); }
+.scenario.bull .scenario-price { color: var(--bull); }
+
+/* ── SENSITIVITY ──────────────────────────────────────────── */
+.sens-table { font-family: var(--mono); font-size: 11px; border-collapse: collapse; width: 100%; }
+.sens-table td, .sens-table th { padding: 8px 12px; text-align: center; border: 1px solid var(--rule); }
+.sens-table .row-header { background: var(--paper-2); font-weight: 500; color: var(--ink); }
+.sens-table .col-header { background: var(--paper-2); font-weight: 500; color: var(--ink); }
+.sens-table .corner { background: var(--paper-3); }
+.heat-low { background: #fde8e4; color: #6b1a0e; }
+.heat-mid-low { background: #fff3cd; color: #664d03; }
+.heat-mid { background: #f9f7f3; color: var(--ink); }
+.heat-mid-high { background: #d4edda; color: #1a4d2e; }
+.heat-high { background: #b7dfc4; color: #0d3320; }
+
+/* ── MONTE CARLO ──────────────────────────────────────────── */
+.mc-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-bottom: 32px; }
+.mc-stat { background: var(--paper); padding: 20px 18px; }
+.mc-stat-label { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-4); margin-bottom: 8px; }
+.mc-stat-val { font-family: var(--serif); font-size: 22px; color: var(--ink); }
+.mc-stat-val.highlight { color: var(--accent-3); }
+#mc-histogram { width: 100%; height: 220px; display: block; margin-bottom: 12px; }
+.mc-legend { display: flex; gap: 24px; font-family: var(--mono); font-size: 11px; color: var(--ink-4); }
+.mc-legend span { display: flex; align-items: center; gap: 6px; }
+.mc-legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* ── FOOTBALL FIELD ─────────────────────────────────────────── */
+.ff-wrap { margin-top: 32px; }
+.ff-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.ff-label { font-family: var(--mono); font-size: 11px; color: var(--ink-3); width: 180px; flex-shrink: 0; }
+.ff-bar-wrap { flex: 1; position: relative; height: 28px; background: var(--paper-2); border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; }
+.ff-bar { position: absolute; top: 0; height: 100%; border-radius: 1px; display: flex; align-items: center; padding: 0 8px; }
+.ff-bar-text { font-family: var(--mono); font-size: 10px; color: #fff; white-space: nowrap; font-weight: 500; }
+.ff-price-line { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--accent-2); z-index: 10; }
+.ff-price-label { position: absolute; top: -20px; font-family: var(--mono); font-size: 9px; color: var(--accent-2); transform: translateX(-50%); white-space: nowrap; }
+.ff-range-label { font-family: var(--mono); font-size: 10px; color: var(--ink-4); width: 100px; flex-shrink: 0; text-align: right; }
+
+/* ── VERDICT ──────────────────────────────────────────────── */
+.verdict-box {
+  border: 1px solid var(--rule); padding: 40px 48px;
+  position: relative; margin-top: 48px;
+  background: var(--paper-2);
+}
+.verdict-box::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-3));
+}
+.verdict-text { font-size: 15px; color: var(--ink-2); line-height: 1.8; max-width: 680px; margin-bottom: 32px; }
+.verdict-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 24px; }
+.verdict-item-label { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-4); margin-bottom: 6px; }
+.verdict-item-val { font-family: var(--serif); font-size: 22px; color: var(--ink); }
+.verdict-item-val.pos { color: var(--accent-3); }
+.verdict-item-val.neg { color: var(--bear); }
+
+/* ── FOOTER ──────────────────────────────────────────────── */
+.site-footer { padding: 40px 64px; border-top: 1px solid var(--rule); }
+.footer-sources { font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-bottom: 16px; line-height: 1.8; }
+.footer-sources a { color: var(--accent); text-decoration: none; }
+.footer-sources a:hover { text-decoration: underline; }
+.footer-disclaimer { font-size: 11px; color: var(--ink-4); line-height: 1.7; max-width: 800px; }
+
+/* ── LOADING ──────────────────────────────────────────────── */
+.mc-loading { font-family: var(--mono); font-size: 12px; color: var(--ink-4); padding: 20px 0; }
+
+@media (max-width: 900px) {
+  #editor-panel { width: 100%; transform: translateY(100vh); }
+  #editor-panel.collapsed { transform: translateY(100vh); }
+  #editor-panel.open { transform: translateY(0); }
+  #main { margin-right: 0 !important; }
+  .hero, .section, .site-header { padding-left: 24px; padding-right: 24px; }
+  .scenarios { grid-template-columns: 1fr; }
+  .site-footer { padding: 32px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- EDITOR PANEL -->
+<div id="editor-panel">
+  <div class="ep-title">⚙ Editor de Inputs</div>
+
+  <div class="ep-section">
+    <div class="ep-section-title">Identificação</div>
+    <div class="ep-row"><label>Ticker</label><input id="i-ticker" value="TICKER" maxlength="6"></div>
+    <div class="ep-row"><label>Nome completo</label><input id="i-name" value="Nome da Empresa"></div>
+    <div class="ep-row"><label>Bolsa</label><input id="i-exchange" value="NYSE"></div>
+    <div class="ep-row"><label>Data da análise</label><input id="i-date" value="2026"></div>
+    <div class="ep-row"><label>Teu nome (analista)</label><input id="i-analyst" value="O teu nome"></div>
+  </div>
+
+  <div class="ep-section">
+    <div class="ep-section-title">Cotação e Mercado</div>
+    <div class="ep-2col">
+      <div class="ep-row"><label>Cotação ($)</label><input id="i-price" type="number" value="100" step="0.01"></div>
+      <div class="ep-row"><label>Market Cap ($B)</label><input id="i-mktcap" type="number" value="50" step="0.1"></div>
+    </div>
+    <div class="ep-2col">
+      <div class="ep-row"><label>52w High ($)</label><input id="i-high" type="number" value="130"></div>
+      <div class="ep-row"><label>52w Low ($)</label><input id="i-low" type="number" value="90"></div>
+    </div>
+    <div class="ep-2col">
+      <div class="ep-row"><label>Shares (M)</label><input id="i-shares" type="number" value="500"></div>
+      <div class="ep-row"><label>Net Debt ($B)</label><input id="i-netdebt" type="number" value="5" step="0.1"></div>
+    </div>
+    <div class="ep-2col">
+      <div class="ep-row"><label>Div. Yield (%)</label><input id="i-divyield" type="number" value="2.5" step="0.01"></div>
+      <div class="ep-row"><label>Div. anos consec.</label><input id="i-divyears" type="number" value="10"></div>
+    </div>
+    <div class="ep-row"><label>Consenso analistas ($)</label><input id="i-consensus" type="number" value="130"></div>
+    <div class="ep-row"><label>Nº analistas consenso</label><input id="i-analysts" type="number" value="20"></div>
+  </div>
+
+  <div class="ep-section">
+    <div class="ep-section-title">Métricas TTM</div>
+    <div class="ep-2col">
+      <div class="ep-row"><label>FCF ($B)</label><input id="i-fcf" type="number" value="5" step="0.1"></div>
+      <div class="ep-row"><label>EPS TTM ($)</label><input id="i-eps" type="number" value="5" step="0.01"></div>
+    </div>
+    <div class="ep-2col">
+      <div class="ep-row"><label>EPS Fwd 1 ($)</label><input id="i-epsfwd1" type="number" value="5.5" step="0.01"></div>
+      <div class="ep-row"><label>EPS Fwd 2 ($)</label><input id="i-epsfwd2" type="number" value="6" step="0.01"></div>
+    </div>
+    <div class="ep-2col">
+      <div class="ep-row"><label>EBITDA ($B)</label><input id="i-ebitda" type="number" value="8" step="0.1"></div>
+      <div class="ep-row"><label>Op. Margin (%)</label><input id="i-opmargin" type="number" value="25" step="0.1"></div>
+    </div>
+    <div class="ep-section-title" style="margin-top:12px">Médias Históricas 5A</div>
+    <div class="ep-2col">
+      <div class="ep-row"><label>P/E médio 5A</label><input id="i-pe5a" type="number" value="22" step="0.1"></div>
+      <div class="ep-row"><label>EV/EBITDA médio 5A</label><input id="i-ev5a" type="number" value="16" step="0.1"></div>
+    </div>
+    <div class="ep-2col">
+      <div class="ep-row"><label>P/FCF médio 5A</label><input id="i-pfcf5a" type="number" value="25" step="0.1"></div>
+      <div class="ep-row"><label>Div. Yield médio 5A (%)</label><input id="i-dy5a" type="number" value="2.2" step="0.01"></div>
+    </div>
+  </div>
+
+  <div class="ep-section">
+    <div class="ep-section-title">DCF — Premissas</div>
+    <div class="ep-2col">
+      <div class="ep-row"><label>WACC base (%)</label><input id="i-wacc" type="number" value="7.5" step="0.05"></div>
+      <div class="ep-row"><label>Cresc. FCF anos 1-5 (%)</label><input id="i-g1" type="number" value="7" step="0.1"></div>
+    </div>
+    <div class="ep-2col">
+      <div class="ep-row"><label>Cresc. FCF anos 6-10 (%)</label><input id="i-g2" type="number" value="5" step="0.1"></div>
+      <div class="ep-row"><label>Terminal growth g (%)</label><input id="i-g3" type="number" value="2.5" step="0.05"></div>
+    </div>
+    <div class="ep-note">Bear: WACC+0.75pp, cresc.-2pp. Bull: WACC-0.5pp, cresc.+1.5pp.</div>
+  </div>
+
+  <div class="ep-section">
+    <div class="ep-section-title">Peers (até 5)</div>
+    <div id="peers-container"></div>
+    <button class="ep-btn" onclick="addPeer()">+ Adicionar peer</button>
+  </div>
+
+  <div class="ep-section">
+    <div class="ep-section-title">Veredicto</div>
+    <div class="ep-row"><label>Valor justo central</label><input id="i-vfair" value="$120–$140"></div>
+    <div class="ep-row"><label>Margem de segurança</label><input id="i-mseg" value="Razoável"></div>
+    <div class="ep-row"><label>Recomendação</label>
+      <select id="i-rec">
+        <option>Comprar em fraqueza</option>
+        <option>Comprar</option>
+        <option>Acompanhar</option>
+        <option>Não investir</option>
+        <option>Vender</option>
+      </select>
+    </div>
+    <div class="ep-row"><label>Convicção</label>
+      <select id="i-conv">
+        <option>Alta</option>
+        <option>Média</option>
+        <option>Baixa</option>
+      </select>
+    </div>
+    <div class="ep-row"><label>Texto do veredicto</label>
+      <textarea id="i-verdict">Escreve aqui o teu argumento de investimento. Inclui os principais drivers de valor, riscos e catalisadores que justificam a tua posição.</textarea>
+    </div>
+  </div>
+
+  <div class="ep-section">
+    <div class="ep-section-title">Fontes</div>
+    <div class="ep-row"><label>Fontes (separadas por vírgula)</label>
+      <textarea id="i-sources">Stock Analysis, Macrotrends, GuruFocus, Morningstar</textarea>
+    </div>
+  </div>
+
+  <button class="ep-btn" onclick="renderAll()">▶ Actualizar página</button>
+  <button class="ep-btn danger" onclick="runMC()">⟳ Re-correr Monte Carlo</button>
+  <div class="ep-note" style="margin-top:8px">Clica em "Actualizar página" depois de editar qualquer campo.</div>
+</div>
+
+<button id="toggle-editor" class="shifted" onclick="toggleEditor()">EDITOR</button>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="site-header-left">
+    <div class="logo" id="h-logo">RS</div>
+    <div class="header-meta" id="h-meta">Análise Fundamental · TICKER · Valuation</div>
+  </div>
+  <span class="header-pill">Uso pessoal</span>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-label">Análise Fundamental · Valuation</div>
+  <h1 class="hero-title">Valuation <span id="h-company">Nome da Empresa</span></h1>
+  <div class="hero-meta" id="h-hero-meta">Preço $— · Market Cap $—B · Fwd P/E —x · —</div>
+  <p class="hero-desc">Valuation triangulado por quatro metodologias independentes: múltiplos de mercado, comparação com peers, modelo DCF com três cenários e simulação Monte Carlo de 10.000 iterações. O objetivo é estimar o valor intrínseco e a margem de segurança face ao preço de mercado.</p>
+  <div class="hero-scroll">Scroll</div>
+</div>
+
+<!-- 01 SNAPSHOT -->
+<section class="section">
+  <div class="section-num">01 · Snapshot de Mercado</div>
+  <h2 class="section-title">Onde está o preço hoje</h2>
+  <p class="section-subtitle" id="snap-desc">Fotografia da cotação e dos dados de mercado.</p>
+  <div class="cards-grid" id="snap-cards"></div>
+</section>
+
+<!-- 02 MÚLTIPLOS -->
+<section class="section">
+  <div class="section-num">02 · Múltiplos de Valuation</div>
+  <h2 class="section-title">Múltiplos TTM e Forward</h2>
+  <p class="section-subtitle">Cada múltiplo é confrontado com a média histórica de 5 anos. A leitura indica se o título está em desconto, em linha, ou em prémio face ao seu próprio historial.</p>
+  <div class="table-wrap"><table id="mult-table"></table></div>
+</section>
+
+<!-- 03 PEERS -->
+<section class="section">
+  <div class="section-num">03 · Comparação com Peers</div>
+  <h2 class="section-title" id="peers-title">Peers</h2>
+  <p class="section-subtitle" id="peers-sub">Comparação dos múltiplos de avaliação contra os principais comparáveis cotados.</p>
+  <div class="table-wrap"><table id="peers-table"></table></div>
+</section>
+
+<!-- 04 DCF -->
+<section class="section">
+  <div class="section-num">04 · Modelo DCF</div>
+  <h2 class="section-title">Discounted Cash Flow · 3 cenários</h2>
+  <p class="section-subtitle">DCF a 10 anos sobre o Free Cash Flow, com terminal value por Gordon Growth. Três cenários com pressupostos distintos de crescimento e custo de capital.</p>
+  <div class="dcf-inputs" id="dcf-params"></div>
+  <div class="scenarios" id="dcf-scenarios"></div>
+  <h3 style="font-family:var(--serif);font-size:20px;margin-bottom:24px;color:var(--ink)">Tabela de sensibilidade — WACC × Crescimento terminal</h3>
+  <div class="table-wrap"><table class="sens-table" id="sens-table"></table></div>
+</section>
+
+<!-- 05 MONTE CARLO -->
+<section class="section">
+  <div class="section-num">05 · Simulação Monte Carlo</div>
+  <h2 class="section-title">10.000 iterações probabilísticas</h2>
+  <p class="section-subtitle">Cada input do DCF é tratado como uma distribuição normal. Foram simulados 10.000 cenários, gerando uma distribuição de valor intrínseco calculada em tempo real.</p>
+  <p class="mc-loading" id="mc-loading">A correr simulação…</p>
+  <div class="mc-stats" id="mc-stats" style="display:none"></div>
+  <canvas id="mc-histogram" style="display:none"></canvas>
+  <div class="mc-legend" id="mc-legend" style="display:none">
+    <span><span class="dot" style="background:#1a3a5c"></span>Distribuição</span>
+    <span><span class="dot" style="background:#c8401a"></span>Preço actual</span>
+    <span><span class="dot" style="background:#2d6a4f"></span>Mediana</span>
+  </div>
+</section>
+
+<!-- 06 FOOTBALL FIELD -->
+<section class="section">
+  <div class="section-num">06 · Triangulação</div>
+  <h2 class="section-title">Football Field — síntese de métodos</h2>
+  <p class="section-subtitle">Cada metodologia gera um intervalo de valor justo. A linha vermelha marca o preço actual.</p>
+  <div class="ff-wrap" id="ff-wrap"></div>
+  <div class="verdict-box" id="verdict-box"></div>
+</section>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-sources" id="footer-sources"></div>
+  <div class="footer-disclaimer">Documento de apoio à análise fundamental, elaborado com fins educativos e informativos. Não constitui recomendação de investimento, aconselhamento financeiro nem oferta de compra ou venda de valores mobiliários. Os modelos DCF e Monte Carlo assentam em pressupostos do analista e são sensíveis a alterações desses pressupostos. Rentabilidades passadas não garantem resultados futuros.</div>
+</footer>
+
+</div><!-- /main -->
+
+<script>
+// ── PEERS STATE ────────────────────────────────────────────────────────
+let peers = [
+  { ticker:'PEER1', name:'Peer 1 — Descrição', pfwd:'22x', evebitda:'15x', divy:'1.5%', opmargin:'20%', rating:'Buy' },
+  { ticker:'PEER2', name:'Peer 2 — Descrição', pfwd:'25x', evebitda:'18x', divy:'0%', opmargin:'15%', rating:'Hold' },
+];
+
+function getPeersContainer(){ return document.getElementById('peers-container'); }
+
+function addPeer(){
+  peers.push({ ticker:'PEER', name:'Nome — Desc.', pfwd:'20x', evebitda:'15x', divy:'0%', opmargin:'15%', rating:'Hold' });
+  renderPeerEditor();
+}
+
+function removePeer(i){ peers.splice(i,1); renderPeerEditor(); }
+
+function renderPeerEditor(){
+  const c = getPeersContainer(); c.innerHTML='';
+  peers.forEach((p,i)=>{
+    const d = document.createElement('div');
+    d.style.cssText='background:#161b22;border:1px solid #21262d;border-radius:4px;padding:12px;margin-bottom:8px;';
+    d.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-family:var(--mono);font-size:10px;color:#58a6ff;letter-spacing:1px">PEER ${i+1}</span>
+        <button onclick="removePeer(${i})" style="background:#c8401a;border:none;color:#fff;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px">✕</button>
+      </div>
+      <div class="ep-2col">
+        <div class="ep-row"><label>Ticker</label><input value="${p.ticker}" onchange="peers[${i}].ticker=this.value"></div>
+        <div class="ep-row"><label>Rating</label><input value="${p.rating}" onchange="peers[${i}].rating=this.value"></div>
+      </div>
+      <div class="ep-row"><label>Nome — Descrição</label><input value="${p.name}" onchange="peers[${i}].name=this.value"></div>
+      <div class="ep-2col">
+        <div class="ep-row"><label>P/E Fwd</label><input value="${p.pfwd}" onchange="peers[${i}].pfwd=this.value"></div>
+        <div class="ep-row"><label>EV/EBITDA</label><input value="${p.evebitda}" onchange="peers[${i}].evebitda=this.value"></div>
+      </div>
+      <div class="ep-2col">
+        <div class="ep-row"><label>Div Yield</label><input value="${p.divy}" onchange="peers[${i}].divy=this.value"></div>
+        <div class="ep-row"><label>Op. Margin</label><input value="${p.opmargin}" onchange="peers[${i}].opmargin=this.value"></div>
+      </div>
+    `;
+    c.appendChild(d);
+  });
+}
+
+// ── GET INPUTS ────────────────────────────────────────────────────────
+function g(id){ return document.getElementById(id); }
+function gv(id){ return parseFloat(g(id).value)||0; }
+function gs(id){ return g(id).value.trim(); }
+
+// ── DCF CALC ──────────────────────────────────────────────────────────
+function calcDCF(fcf, wacc, g1, g2, gTerm, netDebt, shares){
+  let totalPV = 0;
+  let cf = fcf;
+  const waccD = wacc/100, g1d=g1/100, g2d=g2/100, gTd=gTerm/100;
+  for(let y=1;y<=5;y++){ cf*=(1+g1d); totalPV+=cf/Math.pow(1+waccD,y); }
+  for(let y=6;y<=10;y++){ cf*=(1+g2d); totalPV+=cf/Math.pow(1+waccD,y); }
+  const tv = cf*(1+gTd)/(waccD-gTd);
+  const pvTV = tv/Math.pow(1+waccD,10);
+  const ev = totalPV+pvTV;
+  const equity = ev - netDebt*1e9;
+  const price = equity/(shares*1e6);
+  return { price, ev, pvTV, totalPV, tvPct: pvTV/ev*100 };
+}
+
+// ── SENSITIVITY ───────────────────────────────────────────────────────
+function buildSens(fcf, wacc, g1, g2, netDebt, shares){
+  const waccs=[wacc-1, wacc-0.5, wacc, wacc+0.5, wacc+1];
+  const gs=[1.5, 2.0, 2.5, 3.0, 3.5];
+  const prices=[];
+  waccs.forEach(w=>{ const row=[]; gs.forEach(gv=>{ const r=calcDCF(fcf,w,g1,g2,gv,netDebt,shares); row.push(r.price); }); prices.push(row); });
+  return { waccs, gs, prices };
+}
+
+// ── MONTE CARLO ───────────────────────────────────────────────────────
+function randn(){ let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function normalSample(mu,sigma){ return mu+sigma*randn(); }
+
+function runMC(){
+  const fcf=gv('i-fcf')*1e9, wacc=gv('i-wacc'), g1=gv('i-g1'), g2=gv('i-g2'), g3=gv('i-g3');
+  const netDebt=gv('i-netdebt'), shares=gv('i-shares'), price=gv('i-price');
+  const N=10000;
+  const results=[];
+  for(let i=0;i<N;i++){
+    const wS=normalSample(wacc,0.5);
+    const g1S=normalSample(g1,1.5);
+    const g2S=normalSample(g2,1.0);
+    const g3S=normalSample(g3,0.4);
+    const fcfS=normalSample(fcf/1e9,fcf*0.05/1e9)*1e9;
+    const r=calcDCF(fcfS,wS,g1S,g2S,g3S,netDebt,shares);
+    if(r.price>0&&r.price<5000) results.push(r.price);
+  }
+  results.sort((a,b)=>a-b);
+  const n=results.length;
+  const mean=results.reduce((a,b)=>a+b,0)/n;
+  const median=results[Math.floor(n/2)];
+  const p10=results[Math.floor(n*0.1)];
+  const p90=results[Math.floor(n*0.9)];
+  const p25=results[Math.floor(n*0.25)];
+  const p75=results[Math.floor(n*0.75)];
+  const std=Math.sqrt(results.reduce((a,b)=>a+(b-mean)**2,0)/n);
+  const probAbove=results.filter(v=>v>price).length/n*100;
+
+  // Stats
+  const ms=document.getElementById('mc-stats');
+  ms.style.display='grid';
+  ms.innerHTML=`
+    <div class="mc-stat"><div class="mc-stat-label">Valor médio</div><div class="mc-stat-val">$${mean.toFixed(1)}</div></div>
+    <div class="mc-stat"><div class="mc-stat-label">Mediana (P50)</div><div class="mc-stat-val">$${median.toFixed(1)}</div></div>
+    <div class="mc-stat"><div class="mc-stat-label">Percentil 10</div><div class="mc-stat-val">$${p10.toFixed(1)}</div></div>
+    <div class="mc-stat"><div class="mc-stat-label">Percentil 90</div><div class="mc-stat-val">$${p90.toFixed(1)}</div></div>
+    <div class="mc-stat"><div class="mc-stat-label">Desvio-padrão</div><div class="mc-stat-val">$${std.toFixed(1)}</div></div>
+    <div class="mc-stat"><div class="mc-stat-label">P(valor > preço $${price})</div><div class="mc-stat-val highlight">${probAbove.toFixed(1)}%</div></div>
+  `;
+
+  // Histogram
+  const canvas=document.getElementById('mc-histogram');
+  canvas.style.display='block';
+  document.getElementById('mc-legend').style.display='flex';
+  document.getElementById('mc-loading').style.display='none';
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth*2; canvas.height=440;
+  ctx.scale(2,2);
+  const W=canvas.width/2, H=canvas.height/2;
+  const bins=60;
+  const minV=p10*0.7, maxV=p90*1.3;
+  const bw=(maxV-minV)/bins;
+  const counts=Array(bins).fill(0);
+  results.forEach(v=>{ const bi=Math.floor((v-minV)/bw); if(bi>=0&&bi<bins) counts[bi]++; });
+  const maxC=Math.max(...counts);
+  const padL=40, padR=20, padT=20, padB=40;
+  const cW=W-padL-padR, cH=H-padT-padB;
+  ctx.clearRect(0,0,W,H);
+  counts.forEach((c,i)=>{
+    const x=padL+i*(cW/bins);
+    const bH=c/maxC*cH;
+    const centerV=minV+(i+0.5)*bw;
+    let color='rgba(26,58,92,0.7)';
+    if(centerV<price) color='rgba(200,64,26,0.5)';
+    ctx.fillStyle=color;
+    ctx.fillRect(x,padT+cH-bH,cW/bins-1,bH);
+  });
+  // price line
+  const px=padL+(price-minV)/(maxV-minV)*cW;
+  ctx.strokeStyle='#c8401a'; ctx.lineWidth=2; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(px,padT); ctx.lineTo(px,padT+cH); ctx.stroke();
+  // median line
+  const mx=padL+(median-minV)/(maxV-minV)*cW;
+  ctx.strokeStyle='#2d6a4f'; ctx.lineWidth=2; ctx.setLineDash([6,3]);
+  ctx.beginPath(); ctx.moveTo(mx,padT); ctx.lineTo(mx,padT+cH); ctx.stroke();
+  ctx.setLineDash([]);
+  // x-axis labels
+  ctx.fillStyle='#888'; ctx.font='10px DM Mono, monospace'; ctx.textAlign='center';
+  for(let i=0;i<=4;i++){
+    const v=minV+i*(maxV-minV)/4;
+    const x=padL+i*cW/4;
+    ctx.fillText('$'+v.toFixed(0),x,padT+cH+18);
+  }
+
+  // store for FF
+  window._mcMedian=median; window._mcP10=p10; window._mcP90=p90;
+  renderFF();
+}
+
+// ── FOOTBALL FIELD ────────────────────────────────────────────────────
+function renderFF(){
+  const price=gv('i-price');
+  const fcf=gv('i-fcf')*1e9, wacc=gv('i-wacc'), g1=gv('i-g1'), g2=gv('i-g2'), g3=gv('i-g3');
+  const nd=gv('i-netdebt'), sh=gv('i-shares');
+  const mktcap=gv('i-mktcap')*1e9;
+  const ebitda=gv('i-ebitda')*1e9;
+  const pe5a=gv('i-pe5a'), ev5a=gv('i-ev5a'), eps=gv('i-eps');
+  const epsfwd1=gv('i-epsfwd1');
+  const consensus=gv('i-consensus');
+
+  const bear=calcDCF(fcf,wacc+0.75,g1-2,g2-2,g3-0.25,nd,sh);
+  const base=calcDCF(fcf,wacc,g1,g2,g3,nd,sh);
+  const bull=calcDCF(fcf,wacc-0.5,g1+1.5,g2+1.5,g3+0.25,nd,sh);
+
+  // Múltiplos históricos
+  const peHist=[eps*pe5a*0.85, eps*pe5a*1.15];
+  const evHist=[(ev5a*ebitda/1e9-nd)*1e9/sh/1e6*0.85, (ev5a*ebitda/1e9-nd)*1e9/sh/1e6*1.15];
+
+  const mc10=window._mcP10||bear.price, mc90=window._mcP90||bull.price;
+
+  const rows=[
+    { label:'DCF Bear', low:bear.price*0.95, high:bear.price*1.05, color:'#c8401a99' },
+    { label:'DCF Base', low:base.price*0.97, high:base.price*1.03, color:'#1a3a5c99' },
+    { label:'DCF Bull', low:bull.price*0.95, high:bull.price*1.05, color:'#2d6a4f99' },
+    { label:'Monte Carlo P10–P90', low:mc10, high:mc90, color:'#8b949e66' },
+    { label:'P/E Histórico 5A', low:peHist[0], high:peHist[1], color:'#b8860b99' },
+    { label:'EV/EBITDA Histórico 5A', low:evHist[0], high:evHist[1], color:'#9c6b9e99' },
+    { label:'Consenso Analistas', low:consensus*0.9, high:consensus*1.1, color:'#2d6a4f66' },
+  ];
+
+  const allVals=[price,...rows.map(r=>[r.low,r.high]).flat()].filter(v=>v>0);
+  const minV=Math.min(...allVals)*0.85;
+  const maxV=Math.max(...allVals)*1.1;
+  const range=maxV-minV;
+
+  const wrap=document.getElementById('ff-wrap');
+  wrap.innerHTML='';
+  rows.forEach(row=>{
+    const leftPct=(row.low-minV)/range*100;
+    const widthPct=(row.high-row.low)/range*100;
+    const pricePct=(price-minV)/range*100;
+    const d=document.createElement('div');
+    d.className='ff-row';
+    d.innerHTML=`
+      <div class="ff-label">${row.label}</div>
+      <div class="ff-bar-wrap">
+        <div class="ff-bar" style="left:${leftPct}%;width:${widthPct}%;background:${row.color}">
+          <span class="ff-bar-text">$${row.low.toFixed(0)} – $${row.high.toFixed(0)}</span>
+        </div>
+        <div class="ff-price-line" style="left:${pricePct}%">
+          <div class="ff-price-label">$${price.toFixed(0)}</div>
+        </div>
+      </div>
+      <div class="ff-range-label" style="font-family:var(--mono);font-size:10px;color:var(--ink-4)">$${row.low.toFixed(0)}–$${row.high.toFixed(0)}</div>
+    `;
+    wrap.appendChild(d);
+  });
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────────────
+function renderAll(){
+  const ticker=gs('i-ticker').toUpperCase();
+  const name=gs('i-name');
+  const exchange=gs('i-exchange');
+  const date=gs('i-date');
+  const analyst=gs('i-analyst');
+  const price=gv('i-price');
+  const mktcap=gv('i-mktcap');
+  const high=gv('i-high');
+  const low=gv('i-low');
+  const shares=gv('i-shares');
+  const netDebt=gv('i-netdebt');
+  const divyield=gv('i-divyield');
+  const divyears=gv('i-divyears');
+  const consensus=gv('i-consensus');
+  const analysts=gv('i-analysts');
+  const fcf=gv('i-fcf');
+  const eps=gv('i-eps');
+  const epsfwd1=gv('i-epsfwd1');
+  const epsfwd2=gv('i-epsfwd2');
+  const ebitda=gv('i-ebitda');
+  const opmargin=gv('i-opmargin');
+  const pe5a=gv('i-pe5a');
+  const ev5a=gv('i-ev5a');
+  const pfcf5a=gv('i-pfcf5a');
+  const dy5a=gv('i-dy5a');
+  const wacc=gv('i-wacc');
+  const g1=gv('i-g1');
+  const g2=gv('i-g2');
+  const g3=gv('i-g3');
+
+  // derived
+  const ev=mktcap+netDebt;
+  const pe=price/eps;
+  const pfwdE1=price/epsfwd1;
+  const pfwdE2=price/epsfwd2;
+  const evEbitda=ev/ebitda;
+  const pfcf=mktcap/(fcf);
+  const fcfYield=fcf/mktcap*100;
+  const earningsYield=(1/pe)*100;
+  const consUpside=(consensus/price-1)*100;
+  const posvs52h=(price/high-1)*100;
+
+  // Title
+  document.title=`${ticker} — Valuation | Análise Fundamental`;
+  g('h-logo').textContent=analyst.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'RS';
+  g('h-meta').textContent=`Análise Fundamental · ${exchange}: ${ticker} · Valuation`;
+  g('h-company').textContent=name;
+  g('h-hero-meta').textContent=`Preço $${price.toFixed(2)} · Market Cap $${mktcap.toFixed(1)}B · Fwd P/E ${pfwdE1.toFixed(1)}x · ${date}`;
+  g('snap-desc').textContent=`Fotografia da cotação e dos dados de mercado a ${date}. O título transaciona ${posvs52h.toFixed(0)}% ${posvs52h<0?'abaixo':'acima'} do máximo de 52 semanas.`;
+
+  // ── SNAP CARDS
+  const cards=[
+    { label:'Preço actual', val:`$${price.toFixed(2)}`, sub:`52w: $${low.toFixed(2)} – $${high.toFixed(2)}` },
+    { label:'Market Cap', val:`$${mktcap.toFixed(1)}B`, sub:`~${(shares/1000).toFixed(1)}B acções em circulação` },
+    { label:'Enterprise Value', val:`~$${ev.toFixed(1)}B`, sub:`Inclui ~$${netDebt.toFixed(1)}B net debt` },
+    { label:'Dividend Yield', val:`${divyield.toFixed(2)}%`, sub:`${divyield>0?`Aristocrat ${divyears} anos`:'Sem dividendo'}`, badge: divyield>dy5a?'pos':divyield<dy5a?'neu':'neu', badgeText: divyield>dy5a?'Acima média 5A':'Em linha média 5A' },
+    { label:'Posição vs 52w high', val:`${posvs52h.toFixed(0)}%`, sub:'Compressão de múltiplos', badge: posvs52h<-15?'pos':'neu', badgeText: posvs52h<-15?'Ponto de entrada':'Perto do topo' },
+    { label:'FCF Yield', val:`${fcfYield.toFixed(2)}%`, sub:`$${fcf.toFixed(1)}B FCF / Market Cap` },
+    { label:'Earnings Yield', val:`${earningsYield.toFixed(2)}%`, sub:'Inverso do P/E TTM' },
+    { label:'Consenso analistas', val:`$${consensus.toFixed(0)}`, sub:`${analysts} analistas · Buy · +${consUpside.toFixed(0)}%` },
+  ];
+  const cg=document.getElementById('snap-cards');
+  cg.innerHTML='';
+  cards.forEach(c=>{
+    const d=document.createElement('div'); d.className='card';
+    d.innerHTML=`<div class="card-label">${c.label}</div><div class="card-value">${c.val}</div><div class="card-sub">${c.sub}</div>${c.badge?`<span class="card-badge badge-${c.badge}">${c.badgeText}</span>`:''}`;
+    cg.appendChild(d);
+  });
+
+  // ── MÚLTIPLOS TABLE
+  const leitura=(actual,hist)=>{
+    const diff=(actual-hist)/Math.abs(hist);
+    if(diff<-0.05) return ['Desconto','pos'];
+    if(diff>0.05) return ['Prémio','neg'];
+    return ['Em linha','neu'];
+  };
+  const multRows=[
+    [`P/E (TTM) — Preço / EPS $${eps.toFixed(2)}`, pe.toFixed(1)+'x', `~${pe5a.toFixed(0)}x`, ...leitura(pe,pe5a)],
+    [`P/E Forward ${date}E — EPS est. $${epsfwd1.toFixed(2)}`, pfwdE1.toFixed(1)+'x', `~${pe5a.toFixed(0)}x`, ...leitura(pfwdE1,pe5a)],
+    [`P/E Forward (Y+2) — EPS est. $${epsfwd2.toFixed(2)}`, pfwdE2.toFixed(1)+'x', `~${pe5a.toFixed(0)}x`, ...leitura(pfwdE2,pe5a)],
+    [`EV / EBITDA — EV ~$${ev.toFixed(1)}B / EBITDA ~$${ebitda.toFixed(1)}B`, `~${evEbitda.toFixed(1)}x`, `~${ev5a.toFixed(0)}x`, ...leitura(evEbitda,ev5a)],
+    [`P / FCF — Market Cap / FCF $${fcf.toFixed(1)}B`, pfcf.toFixed(1)+'x', `~${pfcf5a.toFixed(0)}x`, ...leitura(pfcf,pfcf5a)],
+    [`Dividend Yield — $${(divyield*price/100).toFixed(2)} / preço`, divyield.toFixed(2)+'%', `~${dy5a.toFixed(1)}%`, divyield>dy5a?'Acima média':'Abaixo média', divyield>dy5a?'pos':'neg'],
+    [`FCF Yield — FCF / Market Cap`, fcfYield.toFixed(2)+'%', '—', '—', 'neu'],
+  ];
+  const mt=document.getElementById('mult-table');
+  mt.innerHTML=`<thead><tr><th>Métrica</th><th>Valor actual</th><th>Média 5 anos</th><th>Leitura</th></tr></thead><tbody>${
+    multRows.map(r=>`<tr><td>${r[0]}</td><td style="font-family:var(--mono)">${r[1]}</td><td style="font-family:var(--mono);color:var(--ink-4)">${r[2]}</td><td class="leitura-${r[4]}">${r[3]}</td></tr>`).join('')
+  }</tbody>`;
+
+  // ── PEERS TABLE
+  g('peers-title').textContent=`${ticker} vs peers`;
+  g('peers-sub').textContent=`Comparação dos múltiplos de avaliação de ${name} contra os principais comparáveis cotados.`;
+  const pt=document.getElementById('peers-table');
+  const mainRow={ ticker:ticker, name:`${name}`, pfwd:pfwdE1.toFixed(1)+'x', evebitda:evEbitda.toFixed(1)+'x', divy:divyield.toFixed(2)+'%', opmargin:opmargin.toFixed(1)+'%', rating:'—', main:true };
+  const allPeers=[mainRow,...peers];
+  pt.innerHTML=`<thead><tr><th>Empresa</th><th>P/E Fwd</th><th>EV/EBITDA</th><th>Div Yield</th><th>Op. Margin</th><th>Rating</th></tr></thead><tbody>${
+    allPeers.map(p=>`<tr class="${p.main?'peer-highlight':''}"><td><strong style="font-family:var(--mono)">${p.ticker}</strong> · ${p.name}</td><td style="font-family:var(--mono)">${p.pfwd}</td><td style="font-family:var(--mono)">${p.evebitda}</td><td style="font-family:var(--mono)">${p.divy}</td><td style="font-family:var(--mono)">${p.opmargin}</td><td style="font-family:var(--mono)">${p.rating}</td></tr>`).join('')
+  }</tbody>`;
+
+  // ── DCF PARAMS
+  const bear=calcDCF(fcf*1e9,wacc+0.75,g1-2,g2-2,g3-0.25,netDebt,shares);
+  const base=calcDCF(fcf*1e9,wacc,g1,g2,g3,netDebt,shares);
+  const bull=calcDCF(fcf*1e9,wacc-0.5,g1+1.5,g2+1.5,g3+0.25,netDebt,shares);
+
+  const dp=document.getElementById('dcf-params');
+  dp.innerHTML=[
+    ['FCF inicial (TTM)', `$${fcf.toFixed(1)}B`],
+    ['Acções em circulação', `${shares.toFixed(0)}M`],
+    ['Net debt', `$${netDebt.toFixed(1)}B`],
+    ['Crescimento FCF anos 1-5', `${g1.toFixed(1)}%`],
+    ['Crescimento FCF anos 6-10', `${g2.toFixed(1)}%`],
+    ['Crescimento terminal (g)', `${g3.toFixed(2)}%`],
+    ['WACC (base)', `${wacc.toFixed(2)}%`],
+    ['Horizonte explícito', '10 anos'],
+  ].map(([l,v])=>`<div class="dcf-input-block"><div class="dcf-input-label">${l}</div><div class="dcf-input-val">${v}</div></div>`).join('');
+
+  // ── DCF SCENARIOS
+  const bearDelta=(bear.price/price-1)*100;
+  const baseDelta=(base.price/price-1)*100;
+  const bullDelta=(bull.price/price-1)*100;
+  document.getElementById('dcf-scenarios').innerHTML=`
+    <div class="scenario bear">
+      <div class="scenario-label">▼ Bear</div>
+      <div class="scenario-price">$${bear.price.toFixed(0)}</div>
+      <div class="scenario-delta" style="color:${bearDelta<0?'var(--bear)':'var(--bull)'}">
+        ${bearDelta>0?'+':''}${bearDelta.toFixed(0)}% vs preço
+      </div>
+      <div class="scenario-params">WACC ${(wacc+0.75).toFixed(2)}% · cresc. ${(g1-2).toFixed(0)}% · g ${(g3-0.25).toFixed(2)}%</div>
+    </div>
+    <div class="scenario base">
+      <div class="scenario-label">● Base</div>
+      <div class="scenario-price">$${base.price.toFixed(0)}</div>
+      <div class="scenario-delta" style="color:${baseDelta>0?'var(--bull)':'var(--bear)'}">
+        ${baseDelta>0?'+':''}${baseDelta.toFixed(0)}% vs preço
+      </div>
+      <div class="scenario-params">WACC ${wacc.toFixed(2)}% · cresc. ${g1.toFixed(0)}% · g ${g3.toFixed(2)}%</div>
+    </div>
+    <div class="scenario bull">
+      <div class="scenario-label">▲ Bull</div>
+      <div class="scenario-price">$${bull.price.toFixed(0)}</div>
+      <div class="scenario-delta" style="color:var(--bull)">
+        +${bullDelta.toFixed(0)}% vs preço
+      </div>
+      <div class="scenario-params">WACC ${(wacc-0.5).toFixed(2)}% · cresc. ${(g1+1.5).toFixed(0)}% · g ${(g3+0.25).toFixed(2)}%</div>
+    </div>
+  `;
+
+  // ── SENSITIVITY TABLE
+  const sens=buildSens(fcf*1e9,wacc,g1,g2,netDebt,shares);
+  const allP=sens.prices.flat(); const minP=Math.min(...allP), maxP=Math.max(...allP);
+  const heatClass=v=>{ const r=(v-minP)/(maxP-minP); if(r<0.2)return'heat-low'; if(r<0.4)return'heat-mid-low'; if(r<0.6)return'heat-mid'; if(r<0.8)return'heat-mid-high'; return'heat-high'; };
+  const st=document.getElementById('sens-table');
+  st.innerHTML=`<tr><td class="corner">WACC ↓ / g →</td>${sens.gs.map(g=>`<th class="col-header">${g.toFixed(1)}%</th>`).join('')}</tr>${
+    sens.waccs.map((w,wi)=>`<tr><td class="row-header">${w.toFixed(2)}%</td>${sens.prices[wi].map(p=>`<td class="${heatClass(p)}">$${p.toFixed(0)}</td>`).join('')}</tr>`).join('')
+  }`;
+
+  // ── VERDICT
+  const vText=gs('i-verdict');
+  const vFair=gs('i-vfair');
+  const vMseg=gs('i-mseg');
+  const vRec=gs('i-rec');
+  const vConv=gs('i-conv');
+  document.getElementById('verdict-box').innerHTML=`
+    <p class="verdict-text">${vText}</p>
+    <div class="verdict-grid">
+      <div><div class="verdict-item-label">Valor justo central</div><div class="verdict-item-val">${vFair}</div></div>
+      <div><div class="verdict-item-label">Preço actual</div><div class="verdict-item-val">$${price.toFixed(2)}</div></div>
+      <div><div class="verdict-item-label">Margem de segurança</div><div class="verdict-item-val">${vMseg}</div></div>
+      <div><div class="verdict-item-label">Recomendação</div><div class="verdict-item-val ${baseDelta>10?'pos':baseDelta<-10?'neg':''}">${vRec}</div></div>
+      <div><div class="verdict-item-label">Convicção</div><div class="verdict-item-val">${vConv}</div></div>
+    </div>
+  `;
+
+  // ── SOURCES
+  const sources=gs('i-sources').split(',').map(s=>s.trim()).filter(Boolean);
+  document.getElementById('footer-sources').innerHTML=`Fontes: ${sources.map(s=>`<a href="#" onclick="return false">${s}</a>`).join(' · ')}`;
+
+  // ── FOOTBALL FIELD & MC
+  runMC();
+}
+
+// ── EDITOR TOGGLE ──────────────────────────────────────────────────────
+function toggleEditor(){
+  const ep=document.getElementById('editor-panel');
+  const main=document.getElementById('main');
+  const btn=document.getElementById('toggle-editor');
+  ep.classList.toggle('collapsed');
+  main.classList.toggle('expanded');
+  btn.classList.toggle('shifted');
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────
+renderPeerEditor();
+renderAll();
+</script>
+</body>
+</html>
